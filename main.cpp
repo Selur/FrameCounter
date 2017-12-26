@@ -14,8 +14,7 @@ void adjustGOPSize(int count, int &lastIDRPosition, int &maxGOPsize)
   }
 }
 
-void checkMPEG2FrameType(const int idx, const int basePatternSize, const int yIndex,
-    const QByteArray &buffer, double &count)
+void checkMPEG2FrameType(const int idx, const int basePatternSize, const int yIndex, const QByteArray &buffer, double &count)
 {
   // get 1st byte after base pattern
   bitset<8> x(buffer[idx + basePatternSize]);
@@ -385,6 +384,6 @@ int main(int argc, char *argv[])
       continue;
     }
   }
-  cerr << "framecount: " << analyse(argv[1], list, noprogress);
+  cerr << "framecount: " << analyse(QString::fromLocal8Bit(argv[1]), list, noprogress);
   return 0;
 }
