@@ -44,10 +44,10 @@ int framecountOfRawMPEG2(const QString &fileName, const bool noprogress)
   // create base pattern
   QByteArray basePattern;
   basePattern.resize(4); //start code + extension
-  basePattern[0] = (char) 0x00;
-  basePattern[1] = (char) 0x00;
-  basePattern[2] = (char) 0x01;
-  basePattern[3] = (char) 0xB5;
+  basePattern[0] = char(0x00);
+  basePattern[1] = char(0x00);
+  basePattern[2] = char(0x01);
+  basePattern[3] = char(0xB5);
   int basePatternSize = basePattern.size();
   int patternSize = basePatternSize + 2;  // +2, because three bytes after pattern are interesting
 
@@ -84,8 +84,45 @@ int framecountOfRawMPEG2(const QString &fileName, const bool noprogress)
     }
   }
   file.close();
-  return count;
+  return int(count);
 }
+
+#include <stdio.h>
+int framecountOfRawH265(const QString &input, const bool list, const bool noprogress)
+{
+  Q_UNUSED(noprogress);
+  Q_UNUSED(list);
+  FILE *inp;
+  fopen_s(&inp, input.toLocal8Bit(), "rb");
+  bool start = true; // parser state
+  quint32 currentPattern = 0;     // current code wor
+  int framecount = 0; // iterate through byte stream
+  while(true) {
+    int b = fgetc(inp); // read next byte
+    if (b == EOF) { // quit at end of byte stream
+      break;
+    }
+    // track 32-bit code word
+    currentPattern = (currentPattern | quint32(b)) << 8; // remove first byte, append last byte
+    if (currentPattern == 0x00000100) {
+      if (start) {
+        int type = fgetc(inp); // read next byte (nalu type)
+        if (type == EOF) { // quit at end of byte stream
+            break;
+        }
+        type >>= 1; // ignore reserved bit
+        if (type == 1 || type == 19) {
+          framecount++;
+        }
+        currentPattern = 0; // reset current pattern
+      }
+      start = !start;
+    }
+  }
+  fclose(inp);
+  return framecount;
+}
+
 
 int framecountOfRawH264(const QString &input, const bool list, const bool noprogress)
 {
@@ -105,9 +142,9 @@ int framecountOfRawH264(const QString &input, const bool list, const bool noprog
   QByteArray data, basePattern;
   basePattern.resize(3);
   //start code:
-  basePattern[0] = (char) 0x00;
-  basePattern[1] = (char) 0x00;
-  basePattern[2] = (char) 0x01;
+  basePattern[0] = char(0x00);
+  basePattern[1] = char(0x00);
+  basePattern[2] = char(0x01);
 
   char end1 = 0x25, end2 = 0x45, end3 = 0x65; //IDR-Frames
   char end4 = 0x01, end5 = 0x21, end6 = 0x41, end7 = 0x61; //non IDR
@@ -298,18 +335,18 @@ int framecountOfRawPatternSizeFour(const QString &input, const int pattern, cons
        * 11  sprite (S)
        * */
       basePattern.resize(4);
-      basePattern[0] = (char) 0x00;
-      basePattern[1] = (char) 0x00;
-      basePattern[2] = (char) 0x01;
-      basePattern[3] = (char) 0xb6;
+      basePattern[0] = char(0x00);
+      basePattern[1] = char(0x00);
+      basePattern[2] = char(0x01);
+      basePattern[3] = char(0xb6);
       //counting all VOBS
       break;
     case 1 : //VC-1
       basePattern.resize(4);
-      basePattern[0] = (char) 0x00;
-      basePattern[1] = (char) 0x00;
-      basePattern[2] = (char) 0x01;
-      basePattern[3] = (char) 0x0d;
+      basePattern[0] = char(0x00);
+      basePattern[1] = char(0x00);
+      basePattern[2] = char(0x01);
+      basePattern[3] = char(0x0d);
       break;
     default : //unknown pattern
       cerr << qPrintable(QObject::tr("Unknown pattern: %1").arg(pattern)) << endl;
@@ -320,7 +357,7 @@ int framecountOfRawPatternSizeFour(const QString &input, const int pattern, cons
   QString tmp1 = "Frame count analyse at ";
   QString tmp2 = " of " + QString::number(file.size() / 1048576.0);
   while (!file.atEnd()) {
-    data.append(file.read(1024 * 1024)); //1MB
+    data.append(file.read(2 << 20)); //1MB
     if (data.size() < 4) {
       break;
     }
@@ -341,7 +378,11 @@ int framecountOfRawPatternSizeFour(const QString &input, const int pattern, cons
 
 int analyse(QString input, bool list, bool noprogress)
 {
-  if (input.endsWith(".264", Qt::CaseInsensitive) || input.endsWith(".h264", Qt::CaseInsensitive)
+  if (input.endsWith(".265", Qt::CaseInsensitive) || input.endsWith(".h265", Qt::CaseInsensitive)
+      || input.endsWith(".hevc", Qt::CaseInsensitive)) {
+    cerr << "analysing h.265 frame count of: " << qPrintable(input) << endl;
+    return framecountOfRawH265(input, list, noprogress);
+  } else if (input.endsWith(".264", Qt::CaseInsensitive) || input.endsWith(".h264", Qt::CaseInsensitive)
       || input.endsWith(".avc", Qt::CaseInsensitive)) {
     cerr << "analysing h.264 frame count of: " << qPrintable(input) << endl;
     return framecountOfRawH264(input, list, noprogress);
