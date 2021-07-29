@@ -111,7 +111,7 @@ int framecountOfRawH265(const QString &input, const bool list, const bool noprog
             break;
         }
         type >>= 1; // ignore reserved bit
-        if (type == 1 || type == 19) {
+        if (type == 1 || type == 19 || type == 0) {
           framecount++;
         }
         currentPattern = 0; // reset current pattern
@@ -405,7 +405,7 @@ int analyse(QString input, bool list, bool noprogress)
 int main(int argc, char *argv[])
 {
   //cerr << "argc " << argc << endl;
-  if (argc < 2 || argc > 4) {
+  if ((argc < 2) || (argc > 4)) {
     cerr << "framecount: 0" << endl;
     return -1;
   }
@@ -425,6 +425,7 @@ int main(int argc, char *argv[])
       continue;
     }
   }
-  cerr << "framecount: " << analyse(QString::fromLocal8Bit(argv[1]), list, noprogress);
+  int count = analyse(QString::fromLocal8Bit(argv[1]), list, noprogress);
+  cerr << "framecount: " << count;
   return 0;
 }
