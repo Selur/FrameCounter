@@ -87,6 +87,11 @@ int framecountOfRawMPEG2(const QString &fileName, const bool noprogress)
   return int(count);
 }
 
+// needed to build on Ubuntu 20.04
+#ifdef __unix
+#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
+#endif
+
 #include <stdio.h>
 int framecountOfRawH265(const QString &input, const bool list, const bool noprogress)
 {
