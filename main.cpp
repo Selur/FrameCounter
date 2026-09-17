@@ -87,8 +87,8 @@ int framecountOfRawMPEG2(const QString &fileName, const bool noprogress)
   return int(count);
 }
 
-// needed to build on Ubuntu 20.04
-#ifdef __unix
+// fopen_s only exists in the Windows CRT (Linux and macOS need the fopen replacement)
+#ifndef _WIN32
 #define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
 #endif
 
